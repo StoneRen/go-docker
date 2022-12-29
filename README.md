@@ -145,3 +145,34 @@ docker run -it --rm hello:v3
 # Hello World
 ```
 执行下来也是没有问题的，这样我们就做了一个好用且省空间的镜像。
+
+# V4: go的细节优化
+
+```dockerfile
+FROM golang:alpine AS builder
+
+ENV CGO_ENABLED 0
+ENV GOPROXY https://goproxy.cn,direct
+
+WORKDIR /build
+COPY . .
+RUN go build -ldflags="-s -w" -o hello hello.go
+
+
+FROM alpine
+WORKDIR /build
+COPY --from=builder /build/hello /build/hello
+CMD ["./hello"]
+```
+如上所示，优化有 2 点：
+1. 禁用 `CGO`, `ENV CGO_ENABLED 0`
+2. 去掉调试信息 `-ldflags="-s -w"`，减少镜像尺寸
+
+看一下整体效果：
+```shell
+hello      v4  ad65ff7dc07e   5 seconds ago    8.7MB
+hello      v3  e37f189f3f0d   15 minutes ago   9.28MB
+hello      v2  a33c543d83f7   24 minutes ago   9.28MB
+hello      v1  c53dd69d5a2a   51 minutes ago   353MB
+```
+如上所示，整体还是节省了些空间。
