@@ -1,9 +1,7 @@
-FROM golang:alpine
+FROM alpine
 
 WORKDIR /build
 
-COPY hello.go .
-
-RUN go build -o hello hello.go
+COPY hello .
 
 CMD ["./hello"]

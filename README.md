@@ -24,7 +24,7 @@ func main() {
 
 ### 编写 Dockerfile
 
-```xml
+```dockerfile
 FROM golang:alpine
 
 WORKDIR /build
@@ -70,3 +70,45 @@ c53dd69d5a2a   11 minutes ago   CMD ["./hello"]                                 
 <missing>      5 weeks ago      /bin/sh -c #(nop) ADD file:685b5edadf1d5bf0a…   7.46MB  
 ```
 重点是这句话：`apk add --no-cache --v…   342MB`，这个命令占据了绝大部分的空间
+
+# V2:  直接执行文件
+既然镜像最耗费空间的是 go 的环境，而本身执行文件只有`7.46MB`， 那直觉告诉我们，我们替换环境镜像，直接复制执行文件就可以大大减轻文件体积。
+
+```dockerfile
+FROM alpine
+
+WORKDIR /build
+
+COPY hello .
+
+CMD ["./hello"]
+```
+那我们打包一个新版本。
+```shell
+docker build -t hello:v2 .
+```
+看一下效果如何：
+```shell
+docker images | grep hello
+hello v2  87ee9ec74d41   6 seconds ago    9.39MB
+hello v1  c53dd69d5a2a   22 minutes ago   353MB
+```
+效果还是非常明显的。
+
+## 问题
+```shell
+docker run -it --rm hello:v2
+# exec ./hello: exec format error
+```
+我们执行命令是有问题的。
+这个原因在于我们我们 build 的时候和 docker 镜像的执行环境是不一致的。
+
+```shell
+GOOS=linux go build -o hello hello.go
+docker build -t hello:v2 .
+docker run -it --rm hello:v2
+```
+现在执行已经 OK 了，现在想想是否就可以了呢？
+
+现在存在一个问题，就是我们的打包镜像的过程是割裂的，我得先本地开发打包可执行文件，然后再打包镜像。我们是否可以统一由 docker 来完成本过程？答案是肯定的。
+
