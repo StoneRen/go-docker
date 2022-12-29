@@ -19,6 +19,7 @@ func main() {
 }
 
 ```
+> commit 记录： https://github.com/StoneRen/go-doc/commits/main
 
 ## v1： 普通构建
 
