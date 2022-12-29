@@ -112,3 +112,36 @@ docker run -it --rm hello:v2
 
 现在存在一个问题，就是我们的打包镜像的过程是割裂的，我得先本地开发打包可执行文件，然后再打包镜像。我们是否可以统一由 docker 来完成本过程？答案是肯定的。
 
+# V3：过程统一
+
+```dockerfile
+FROM golang:alpine AS builder
+WORKDIR /build
+COPY . .
+RUN go build -o hello hello.go
+
+
+FROM alpine
+WORKDIR /build
+COPY --from=builder /build/hello /build/hello
+CMD ["./hello"]
+```
+
+```shell
+docker build -t hello:v3 .
+```
+查看镜像大小
+```shell
+docker images | grep hello
+
+hello      v3  e37f189f3f0d   5 seconds ago    9.28MB
+hello      v2  a33c543d83f7   8 minutes ago    9.28MB
+hello      v1  c53dd69d5a2a   36 minutes ago   353MB
+```
+大小是没有变化的，这也是符合预期的。因为我们主要改变的是build环境。
+
+```shell
+docker run -it --rm hello:v3
+# Hello World
+```
+执行下来也是没有问题的，这样我们就做了一个好用且省空间的镜像。
